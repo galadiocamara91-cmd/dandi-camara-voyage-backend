@@ -1,29 +1,21 @@
-const router = require('express').Router();
-const { protect } = require('../middleware/auth.middleware');
-const Avis = require('../models/Avis');
-const User = require('../models/User');
+const router                 = require('express').Router();
+const ctrl                   = require('../controllers/avis.controller');
+const { protect, adminOnly } = require('../middleware/auth.middleware');
 
-router.get('/voyage/:id', async (req, res) => {
-  try {
-    const avis = await Avis.findAll({
-      where: { VoyageId: req.params.id },
-      include: [{ model: User, attributes: ['prenom', 'nom'] }],
-      order: [['createdAt', 'DESC']]
-    });
-    res.json(avis);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// ═══════════════════════════════════════
+// 🌍  ROUTES PUBLIQUES
+// ═══════════════════════════════════════
+router.get('/voyage/:voyageId',  ctrl.getByVoyage);
 
-router.post('/', protect, async (req, res) => {
-  try {
-    const { note, commentaire, VoyageId } = req.body;
-    const avis = await Avis.create({ note, commentaire, VoyageId, UserId: req.user.id });
-    res.status(201).json(avis);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// ═══════════════════════════════════════
+// 🔒  ROUTES UTILISATEUR CONNECTÉ
+// ═══════════════════════════════════════
+router.post('/',       protect,            ctrl.validateAvis, ctrl.create);
+router.delete('/:id',  protect,            ctrl.remove);
+
+// ═══════════════════════════════════════
+// 🔒  ROUTES ADMIN
+// ═══════════════════════════════════════
+router.get('/',        protect, adminOnly, ctrl.getAll);
 
 module.exports = router;
